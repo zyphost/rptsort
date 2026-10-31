@@ -1,0 +1,17 @@
+# Personal settings hold your home coordinates. Never commit them.
+rptsort.toml
+config.toml
+
+# Radio data
+*.csv
+*.img
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/

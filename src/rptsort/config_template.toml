@@ -1,0 +1,67 @@
+# rptsort settings.
+#
+# This file holds your home coordinates. Keep it private: don't commit it
+# to a public repository.
+#
+# rptsort uses the first settings file it finds:
+#   --config PATH, then ./rptsort.toml, then ~/.config/rptsort/config.toml
+# Inside the file: [defaults] < [presets.NAME] < command-line flags.
+#
+# Settings (any of these can go in [defaults] or in a preset):
+#   keep          channels 1..keep are copied exactly as-is
+#   sort          "distance" | "band" | "town" | "rings"
+#                   distance = nearest first
+#                   band     = 2M block, then 70CM block, each by frequency
+#                   town     = alphabetical by town, then frequency
+#                   rings    = distance groups (see rings), each by frequency
+#   rings         distance boundaries for sort = "rings"
+#   center        sort from here instead of [home]: "Grand Junction, CO" or "39.064,-108.551"
+#   units         "km" | "mi" (used by rings, skip_beyond, max_distance, table)
+#   name          "keep" | "call" | "call-town" | "call-band" | "call-freq"
+#                 | "town" | "town-band" | "town-freq"
+#   name_len      longest channel name your radio accepts
+#   upper         true = uppercase generated names
+#   dedupe        true = channels that would share a name get a frequency name
+#   group_calls   true = keep repeaters with the same callsign together
+#   skip_beyond   scan-skip channels farther than this (0 = leave Skip alone)
+#   max_distance  remove channels farther than this (0 = no limit)
+#   bands         keep only these bands, e.g. ["2M", "70CM"] ([] = all)
+#   open_only     true = remove repeaters listed as CLOSED or PRIVATE
+#   limit         keep at most this many reordered channels (0 = no limit)
+
+[home]
+lat = $lat
+lon = $lon
+
+[defaults]
+keep = $keep
+units = "$units"
+name_len = $name_len
+sort = "distance"
+name = "keep"
+upper = true
+
+# Example presets. Rename, edit or delete them to suit your radios.
+# Run one with:  rptsort mobile my-export.csv
+
+[presets.mobile]
+name = "town-band"
+dedupe = true
+skip_beyond = $mobile_skip
+
+[presets.base]
+sort = "rings"
+rings = $rings
+name = "call-town"
+group_calls = true
+
+# For a trip, pull a fresh RepeaterBook list around the destination first.
+[presets.trip]
+center = "Grand Junction, CO"
+name = "town-band"
+dedupe = true
+skip_beyond = $trip_skip
+
+# Pin exact coordinates for a town (overrides the Census lookup):
+# "Town, ST" = [lat, lon]
+[coords]

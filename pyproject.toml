@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rptsort"
+dynamic = ["version"]
+description = "Reorder, rename and scan-skip ham radio repeater channels in CHIRP CSV files"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Aaron Griffith" }]
+requires-python = ">=3.11"
+dependencies = []
+keywords = ["ham radio", "amateur radio", "chirp", "repeaterbook", "repeater", "csv"]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Communications :: Ham Radio",
+]
+
+[project.urls]
+Homepage = "https://github.com/zyphost/rptsort"
+Issues = "https://github.com/zyphost/rptsort/issues"
+
+[project.scripts]
+rptsort = "rptsort.cli:main"
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[tool.hatch.version]
+path = "src/rptsort/__init__.py"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
