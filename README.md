@@ -14,6 +14,7 @@ returned. Flipping through 140 channels to find the one across town gets old fas
 - **scan-skips** far repeaters so scanning only stops on ones you can hit
 - **filters** by distance, band, or open/closed status, and caps the channel count
 - **merges** several exports (home + a trip) and drops the duplicates
+- **plans zones** for radios (like most DMR radios) that only show the channels in the current zone
 
 Then you import the new CSV back into CHIRP and upload it to the radio.
 
@@ -166,6 +167,45 @@ import rather than from a file you already renamed to town-only names.
 | `open_only` | `--open-only` | Remove repeaters RepeaterBook lists as CLOSED or PRIVATE. |
 | `limit` | `--limit` | Keep at most this many reordered channels, after sorting. |
 | `units` | `--units mi` | Use miles for the distances above, rings, and the table. |
+
+## Zones
+
+Many radios, most DMR radios included, only let you flip through the channels in
+the current zone. Channels that aren't in any zone are on the radio but you
+can't reach them. Zones aren't part of CHIRP's CSV format, so `rptsort` prints
+zone lists for you to paste into CHIRP's zone settings (in the browser-based
+CHIRP: Radio Settings > Zones), and saves them next to the output CSV as
+`FILE-PRESET-zones.txt`.
+
+| `zones` | Zones |
+|---|---|
+| `none` | no zone lists (default) |
+| `local+state` | a `Local` zone with everything within `zone_local`, from any state, then one zone per state for the rest |
+| `state` | one zone per state |
+| `rings` | one zone per distance ring (`0-30 km`, `30-80 km`, `80+ km`) |
+
+Zones are ordered by their nearest channel, and channels inside a zone keep the
+CSV's order. Repeaters with no known location go in `Other`.
+
+| Setting | Flag | What it does |
+|---|---|---|
+| `zone_local` | `--zone-local` | Cutoff for the `Local` zone. Defaults to `skip_beyond`, else 80 km. |
+| `zone_max` | `--zone-max` | Split zones bigger than this into `Name 1`, `Name 2`, ... (default 60). Check your radio's limit. |
+| `keep_zone` | `--keep-zone` | Add a zone with the kept top channels, e.g. `"Simplex"`. |
+
+```text
+Zone order: 1, 2, 3, 4
+
+Zone 1: Local  (24 channels)
+26, 27, 28, 29, 30, ...
+
+Zone 2: Colorado  (31 channels)
+50, 52, 53, ...
+```
+
+Re-running `rptsort` renumbers channels, so paste the new zone lists in again
+each time you load a new CSV. Save the radio image (`.img`) afterwards: it holds
+the zones and settings, the CSV only holds channels.
 
 ## Merging exports
 

@@ -28,6 +28,16 @@
 #   bands         keep only these bands, e.g. ["2M", "70CM"] ([] = all)
 #   open_only     true = remove repeaters listed as CLOSED or PRIVATE
 #   limit         keep at most this many reordered channels (0 = no limit)
+#   zones         "none" | "local+state" | "state" | "rings"
+#                   local+state = a "Local" zone (everything within zone_local,
+#                                 any state), then one zone per state
+#                   state       = one zone per state
+#                   rings       = one zone per distance ring (see rings)
+#                 Zone lists are printed and saved next to the CSV for pasting
+#                 into CHIRP's zone settings (zones aren't part of the CSV).
+#   zone_local    Local zone cutoff (0 = use skip_beyond, else 80 km)
+#   zone_max      split zones bigger than this
+#   keep_zone     name for a zone holding the kept top channels ("" = none)
 
 [home]
 lat = $lat
@@ -48,6 +58,8 @@ upper = true
 name = "town-band"
 dedupe = true
 skip_beyond = $mobile_skip
+zones = "local+state"
+keep_zone = "Simplex"
 
 [presets.base]
 sort = "rings"

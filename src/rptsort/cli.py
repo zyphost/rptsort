@@ -17,6 +17,7 @@ from .config import (
     home_from, load_config, render_template, resolve_settings, user_config_path,
 )
 from .geo import Geocoder, default_cache_dir, parse_latlon, state_code
+from .zones import ZONE_MODES, build_zones, format_zones
 
 USAGE = """\
 rptsort [PRESET] FILE.csv [MORE.csv ...] [options]
@@ -102,13 +103,22 @@ def build_sort_parser() -> argparse.ArgumentParser:
     g.add_argument("--open-only", action=argparse.BooleanOptionalAction, default=None,
                    help="remove repeaters listed as CLOSED or PRIVATE")
     g.add_argument("--limit", type=int, help="keep at most N reordered channels (0 = no limit)")
+
+    g = p.add_argument_group("zones (printed and saved as FILE-PRESET-zones.txt)")
+    g.add_argument("--zones", choices=ZONE_MODES,
+                   help="group channels into zones: local+state, state or rings")
+    g.add_argument("--zone-local", type=float, metavar="DIST",
+                   help="Local zone cutoff for --zones local+state (default: --skip-beyond, else 80 km)")
+    g.add_argument("--zone-max", type=int, metavar="N", help="split zones bigger than N (default 60)")
+    g.add_argument("--keep-zone", metavar="NAME", help="add a zone with the kept top channels")
     return p
 
 
 def cli_overrides(a: argparse.Namespace) -> dict:
     out = {k: getattr(a, k) for k in (
         "keep", "sort", "center", "group_calls", "units", "name", "name_len", "upper",
-        "dedupe", "skip_beyond", "max_distance", "open_only", "limit")}
+        "dedupe", "skip_beyond", "max_distance", "open_only", "limit",
+        "zones", "zone_local", "zone_max", "keep_zone")}
     if a.rings:
         try:
             out["rings"] = [float(x) for x in a.rings.split(",") if x.strip()]
@@ -207,6 +217,12 @@ def run_sort(argv: list[str]) -> Path | None:
     for i, c in enumerate(chans):
         c.row["Location"] = str(keep + 1 + i)
 
+    zones = build_zones(
+        chans, s["zones"], local_km=s["zone_local_km"], rings=s["rings"],
+        rings_km=s["rings_km"], unit=s["units"], zone_max=s["zone_max"],
+        name_len=s["name_len"], kept_locations=[int(r["Location"]) for r in kept],
+        keep_zone=s["keep_zone"])
+
     # --- report
     unit, factor = s["units"], s["unit_factor"]
     lat, lon = center
@@ -216,6 +232,9 @@ def run_sort(argv: list[str]) -> Path | None:
          f"  name={s['name']}  group_calls={s['group_calls']}")
     if not a.quiet:
         print_table(chans, unit, factor)
+        if zones:
+            print("\n" + format_zones(zones).rstrip())
+            sys.stdout.flush()
     for name, n in ignored.items():
         if n:
             warn(f"\n{name}: ignored {n} non-repeater channel(s) at #1-{keep}.")
@@ -268,6 +287,11 @@ def run_sort(argv: list[str]) -> Path | None:
         raise RptsortError("output would overwrite an input file; pick another -o path")
     write_csv(out, header, kept + [c.row for c in chans], newline)
     warn(f"\nWrote {out}: kept {len(kept)} channel(s), reordered #{first}-{last}.")
+    if zones:
+        zones_path = out.with_name(f"{out.stem}-zones.txt")
+        zones_path.write_text(format_zones(zones), encoding="utf-8")
+        warn(f"Wrote {zones_path} ({len(zones)} zones). Paste them into CHIRP's zone settings; "
+             "zones are not part of the CSV.")
     return out
 
 
