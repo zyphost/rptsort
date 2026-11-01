@@ -22,7 +22,9 @@ There is no linter or formatter configured. The owner's `rptsort` command is a `
 
 `cli.run_sort` is a single linear pipeline. Each stage lives in `channels.py`:
 
-read CSV(s) → split rows into *kept* (`Location <= keep`, copied verbatim) and *movable* → `make_chan` (parse comment for town/state/county/`Use:`, regex the callsign out of `Name`, geocode, distance in km from center) → `drop_duplicates` (only when merging several files) → `apply_filters` → `sort_chans` → `group_by_call` → limit → `assign_names` → set `Skip` → renumber from `keep + 1` → report → write.
+read CSV(s) → split rows into *kept* (`Location <= keep`, copied verbatim) and *movable* → `make_chan` (parse comment for town/state/county/`Use:`, regex the callsign out of `Name`, geocode, distance in km from center) → `drop_duplicates` (only when merging several files) → `apply_filters` → `sort_chans` → `group_by_call` → limit → `assign_names` → set `Skip` → renumber from `keep + 1` → `zones.build_zones` (needs final numbers) → report → write CSV, plus `FILE-PRESET-zones.txt` when `zones` is set.
+
+- **Zones:** CHIRP's CSV format has no zones, so `zones.py` only produces text for pasting into CHIRP's zone settings. The `Local` zone in `local+state` mode is distance-based and spans states. Don't split it by state.
 
 - **Output channel:** The report and warnings go to stderr. The channel table goes to stdout and is flushed before warnings.
 - **CSV output:** The output must keep the input's column order, its line ending (CRLF or LF), and minimal quoting. Kept rows must come out byte-identical, and tests check this.

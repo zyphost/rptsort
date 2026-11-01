@@ -10,6 +10,7 @@ from string import Template
 
 from . import RptsortError
 from .channels import BAND_NAMES, NAME_FORMATS, SORTS
+from .zones import DEFAULT_LOCAL_KM, ZONE_MODES
 
 MILE_KM = 1.609344
 
@@ -29,6 +30,10 @@ DEFAULTS = {
     "bands": [],
     "open_only": False,
     "limit": 0,
+    "zones": "none",
+    "zone_local": 0,
+    "zone_max": 60,
+    "keep_zone": "",
 }
 
 _NUMBER = (int, float)
@@ -37,6 +42,7 @@ TYPES = {
     "name": str, "name_len": int, "upper": bool, "dedupe": bool,
     "group_calls": bool, "skip_beyond": _NUMBER, "max_distance": _NUMBER,
     "bands": list, "open_only": bool, "limit": int,
+    "zones": str, "zone_local": _NUMBER, "zone_max": int, "keep_zone": str,
 }
 
 
@@ -105,11 +111,15 @@ def resolve_settings(cfg: dict, preset: str | None, overrides: dict) -> dict:
         raise RptsortError(f"name must be one of: {', '.join(NAME_FORMATS)}")
     if settings["units"] not in ("km", "mi"):
         raise RptsortError('units must be "km" or "mi"')
-    for key in ("keep", "name_len", "limit", "skip_beyond", "max_distance"):
+    if settings["zones"] not in ZONE_MODES:
+        raise RptsortError(f"zones must be one of: {', '.join(ZONE_MODES)}")
+    for key in ("keep", "name_len", "limit", "skip_beyond", "max_distance", "zone_local"):
         if settings[key] < 0:
             raise RptsortError(f"{key} can't be negative")
     if settings["name_len"] < 1:
         raise RptsortError("name_len must be at least 1")
+    if settings["zone_max"] < 1:
+        raise RptsortError("zone_max must be at least 1")
     try:
         settings["rings"] = sorted(float(x) for x in settings["rings"])
     except (TypeError, ValueError) as exc:
@@ -126,6 +136,13 @@ def resolve_settings(cfg: dict, preset: str | None, overrides: dict) -> dict:
     settings["rings_km"] = [x * factor for x in settings["rings"]]
     settings["skip_beyond_km"] = float(settings["skip_beyond"]) * factor
     settings["max_distance_km"] = float(settings["max_distance"]) * factor
+    # Local zone cutoff: zone_local, else skip_beyond, else 80 km.
+    if settings["zone_local"]:
+        settings["zone_local_km"] = float(settings["zone_local"]) * factor
+    elif settings["skip_beyond_km"]:
+        settings["zone_local_km"] = settings["skip_beyond_km"]
+    else:
+        settings["zone_local_km"] = DEFAULT_LOCAL_KM
     return settings
 
 

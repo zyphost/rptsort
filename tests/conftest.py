@@ -20,6 +20,7 @@ PLACES = [
     ("CO", "Breckenridge town", "A", 39.4817, -106.0384),
     ("CO", "Grand Junction city", "A", 39.0639, -108.5506),
     ("CO", "Fruita city", "A", 39.1589, -108.7290),
+    ("WY", "Cheyenne city", "A", 41.1400, -104.8202),
 ]
 COUNTY_HEADER = ("USPS\tGEOID\tANSICODE\tNAME\tALAND\tAWATER\tALAND_SQMI\t"
                  "AWATER_SQMI\tINTPTLAT\tINTPTLONG          ")
