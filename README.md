@@ -28,6 +28,13 @@ With [pipx](https://pipx.pypa.io/) (recommended):
 pipx install git+https://github.com/zyphost/rptsort
 ```
 
+That installs the latest code on `main`. To install a specific
+[release](https://github.com/zyphost/rptsort/releases) instead, add its tag:
+
+```sh
+pipx install git+https://github.com/zyphost/rptsort@v0.1.0
+```
+
 Or from a clone, without installing anything:
 
 ```sh
