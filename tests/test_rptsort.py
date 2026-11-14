@@ -219,6 +219,35 @@ def test_bad_values_rejected():
             resolve_settings({"defaults": table}, None, {})
 
 
+def test_power_left_alone_by_default(export, config):
+    out = sort(export, config=config)
+    assert {r["Power"] for r in read(out)} == {"5.0W"}
+
+
+def test_power_sets_every_channel(export, config):
+    out = sort(export, "--power", "10W", config=config)
+    assert {r["Power"] for r in read(out)} == {"10.0W"}  # kept channels too
+
+
+def test_power_setting_formats():
+    def power(value):
+        return resolve_settings({"defaults": {"power": value}}, None, {})["power"]
+    assert power(10) == "10.0W"
+    assert power(" 0.5 w") == "0.5W"
+    assert power(0) == power("") == ""  # leave Power alone
+    for bad in ("high", "-1W", "10mW", "W", True):
+        with pytest.raises(RptsortError):
+            power(bad)
+
+
+def test_power_needs_power_column(tmp_path, config):
+    path = tmp_path / "nopower.csv"
+    path.write_text("Location,Name,Frequency,Comment\n"
+                    '1,K0ABC,147.000000,"Denver, Colorado, Denver | Use: OPEN"\n')
+    with pytest.raises(RptsortError, match="no Power column"):
+        sort(path, "--keep", "0", "--power", "10", config=config)
+
+
 def test_unknown_preset(export, config):
     with pytest.raises(RptsortError, match="not a CSV file or a preset"):
         run_sort(["nope", str(export), "-c", str(config)])

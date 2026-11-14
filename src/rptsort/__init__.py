@@ -1,6 +1,6 @@
 """rptsort - reorder, rename and scan-skip repeater channels in CHIRP CSV files."""
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 
 class RptsortError(Exception):

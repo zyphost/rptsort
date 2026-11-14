@@ -98,7 +98,52 @@ def test_dry_run_prints_zones_without_file(export, config, tmp_path, capsys):
     assert not list(tmp_path.glob("*-zones.txt"))
 
 
+BANK_RE = re.compile(r"^Bank (\d+): (.+?)  \((\d+) channels?: (\d+)(?:-(\d+))?\)$")
+
+
+def banks_of(out):
+    """Parse a fixed-bank FILE-zones.txt into [(bank, name, first, last)]."""
+    text = out.with_name(f"{out.stem}-zones.txt").read_text(encoding="utf-8")
+    banks = []
+    for m in map(BANK_RE.match, text.splitlines()):
+        if m:
+            first, last = int(m.group(4)), int(m.group(5) or m.group(4))
+            assert int(m.group(3)) == last - first + 1
+            banks.append((int(m.group(1)), m.group(2), first, last))
+    return banks
+
+
+def locations(out):
+    with open(out, newline="", encoding="utf-8") as fh:
+        return [int(r["Location"]) for r in csv.DictReader(fh)]
+
+
+def test_zone_block_starts_each_zone_in_its_own_bank(two_states, config):
+    out = sort(two_states, "--zones", "local+state", "--zone-local", "30",
+               "--zone-block", "10", "--zone-max", "2", config=config)
+    # keep = 3: channels 1-3 stay put in bank 1, so zones start at bank 2.
+    # zone_max is ignored: the bank size is the limit.
+    assert banks_of(out) == [(2, "Local", 11, 14), (3, "Colorado", 21, 26),
+                             (4, "Wyoming", 31, 31), (5, "Other", 41, 41)]
+    assert locations(out) == [1, 2, 3, *range(11, 15), *range(21, 27), 31, 41]
+    where = towns(out)
+    assert {where[n] for n in range(11, 15)} == {"Denver", "Aurora", "Golden"}
+    assert where[31] == "Cheyenne"
+
+
+def test_zone_block_moves_kept_channels_to_keep_zone_bank(export, config):
+    out = sort(export, "--zones", "state", "--zone-block", "5", "--keep-zone", "Factory",
+               config=config)
+    assert banks_of(out) == [(1, "Colorado 1", 1, 5), (2, "Colorado 2", 6, 10),
+                             (3, "Other", 11, 11), (4, "Factory", 16, 18)]
+    assert locations(out) == [*range(1, 12), 16, 17, 18]  # written in channel order
+    with open(out, newline="", encoding="utf-8") as fh:
+        names = {int(r["Location"]): r["Name"] for r in csv.DictReader(fh)}
+    assert [names[n] for n in (16, 17, 18)] == ["Channel 1", "Channel 2", "Channel 3"]
+
+
 def test_bad_zone_settings():
-    for table in ({"zones": "county"}, {"zone_max": 0}, {"zone_local": -1}):
+    for table in ({"zones": "county"}, {"zone_max": 0}, {"zone_local": -1},
+                  {"zone_block": -1}, {"zone_block": 10}):  # zone_block needs zones
         with pytest.raises(RptsortError):
             resolve_settings({"defaults": table}, None, {})

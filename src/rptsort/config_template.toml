@@ -38,6 +38,12 @@
 #   zone_local    Local zone cutoff (0 = use skip_beyond, else 80 km)
 #   zone_max      split zones bigger than this
 #   keep_zone     name for a zone holding the kept top channels ("" = none)
+#   zone_block    for radios with fixed banks of N channels (bank 1 = 1..N,
+#                 bank 2 = N+1..2N, ...): start each zone in its own bank.
+#                 Kept channels move to their own bank if keep_zone is set.
+#                 0 = off. Needs zones.
+#   power         set Power on every channel, kept ones too: "10W" or 10.
+#                 CHIRP picks the radio's closest level. "" = leave alone.
 
 [home]
 lat = $lat
@@ -55,7 +61,7 @@ upper = true
 # Run one with:  rptsort mobile my-export.csv
 
 [presets.mobile]
-name = "town-band"
+name = "town"
 dedupe = true
 skip_beyond = $mobile_skip
 zones = "local+state"
@@ -67,10 +73,21 @@ rings = $rings
 name = "call-town"
 group_calls = true
 
+# A radio with 10 fixed banks of 100 channels (some Baofeng/BTECH handhelds).
+# Bank 1 = Local, then one bank per state, then the kept channels.
+# [presets.handheld]
+# name = "town"
+# name_len = 12
+# skip_beyond = $mobile_skip
+# zones = "local+state"
+# zone_block = 100
+# keep_zone = "Simplex"
+# power = "10W"
+
 # For a trip, pull a fresh RepeaterBook list around the destination first.
 [presets.trip]
 center = "Grand Junction, CO"
-name = "town-band"
+name = "town"
 dedupe = true
 skip_beyond = $trip_skip
 

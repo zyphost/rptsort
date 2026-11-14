@@ -17,7 +17,7 @@ from .config import (
     home_from, load_config, render_template, resolve_settings, user_config_path,
 )
 from .geo import Geocoder, default_cache_dir, parse_latlon, state_code
-from .zones import ZONE_MODES, build_zones, format_zones
+from .zones import ZONE_MODES, build_zones, format_zones, place_in_banks
 
 USAGE = """\
 rptsort [PRESET] FILE.csv [MORE.csv ...] [options]
@@ -104,6 +104,10 @@ def build_sort_parser() -> argparse.ArgumentParser:
                    help="remove repeaters listed as CLOSED or PRIVATE")
     g.add_argument("--limit", type=int, help="keep at most N reordered channels (0 = no limit)")
 
+    g = p.add_argument_group("radio")
+    g.add_argument("--power", metavar="WATTS",
+                   help="set Power on every channel, e.g. 10W (CHIRP picks the closest level)")
+
     g = p.add_argument_group("zones (printed and saved as FILE-PRESET-zones.txt)")
     g.add_argument("--zones", choices=ZONE_MODES,
                    help="group channels into zones: local+state, state or rings")
@@ -111,6 +115,8 @@ def build_sort_parser() -> argparse.ArgumentParser:
                    help="Local zone cutoff for --zones local+state (default: --skip-beyond, else 80 km)")
     g.add_argument("--zone-max", type=int, metavar="N", help="split zones bigger than N (default 60)")
     g.add_argument("--keep-zone", metavar="NAME", help="add a zone with the kept top channels")
+    g.add_argument("--zone-block", type=int, metavar="N",
+                   help="radio has fixed banks of N channels: start each zone in its own bank")
     return p
 
 
@@ -118,7 +124,7 @@ def cli_overrides(a: argparse.Namespace) -> dict:
     out = {k: getattr(a, k) for k in (
         "keep", "sort", "center", "group_calls", "units", "name", "name_len", "upper",
         "dedupe", "skip_beyond", "max_distance", "open_only", "limit",
-        "zones", "zone_local", "zone_max", "keep_zone")}
+        "zones", "zone_local", "zone_max", "keep_zone", "zone_block", "power")}
     if a.rings:
         try:
             out["rings"] = [float(x) for x in a.rings.split(",") if x.strip()]
@@ -214,14 +220,26 @@ def run_sort(argv: list[str]) -> Path | None:
         for c in chans:
             if c.dist is not None:
                 c.row["Skip"] = "S" if c.dist > s["skip_beyond_km"] else ""
+    if s["power"]:
+        if "Power" not in header:
+            raise RptsortError("input has no Power column")
+        for r in kept + [c.row for c in chans]:
+            r["Power"] = s["power"]
     for i, c in enumerate(chans):
         c.row["Location"] = str(keep + 1 + i)
 
+    block = s["zone_block"]
     zones = build_zones(
         chans, s["zones"], local_km=s["zone_local_km"], rings=s["rings"],
-        rings_km=s["rings_km"], unit=s["units"], zone_max=s["zone_max"],
+        rings_km=s["rings_km"], unit=s["units"], zone_max=block or s["zone_max"],
         name_len=s["name_len"], kept_locations=[int(r["Location"]) for r in kept],
         keep_zone=s["keep_zone"])
+    if block:
+        # Kept channels stay in the bank(s) at the top unless keep_zone moves them.
+        first_bank = 1 if s["keep_zone"] else -(-keep // block) + 1
+        moves = place_in_banks(zones, block, first_bank)
+        for r in kept + [c.row for c in chans]:
+            r["Location"] = str(moves.get(int(r["Location"]), r["Location"]))
 
     # --- report
     unit, factor = s["units"], s["unit_factor"]
@@ -233,7 +251,7 @@ def run_sort(argv: list[str]) -> Path | None:
     if not a.quiet:
         print_table(chans, unit, factor)
         if zones:
-            print("\n" + format_zones(zones).rstrip())
+            print("\n" + format_zones(zones, block).rstrip())
             sys.stdout.flush()
     for name, n in ignored.items():
         if n:
@@ -277,21 +295,30 @@ def run_sort(argv: list[str]) -> Path | None:
         if dupes:
             warn(f"\n{len(dupes)} name(s) used more than once (try --dedupe): {', '.join(dupes)}")
 
-    first, last = keep + 1, keep + len(chans)
+    if block:
+        placed = f"placed {len(chans)} channel(s) in {len(zones)} bank(s) of {block}"
+    else:
+        placed = f"reordered #{keep + 1}-{keep + len(chans)}"
     if a.dry_run:
-        warn(f"\nDry run: would keep {len(kept)} channel(s) and reorder #{first}-{last}. "
-             "Nothing written.")
+        warn(f"\nDry run: would keep {len(kept)} channel(s), {placed}. Nothing written.")
         return None
     out = a.output or files[0].with_name(f"{files[0].stem}-{preset or 'sorted'}.csv")
     if any(out.resolve() == f.resolve() for f in files):
         raise RptsortError("output would overwrite an input file; pick another -o path")
-    write_csv(out, header, kept + [c.row for c in chans], newline)
-    warn(f"\nWrote {out}: kept {len(kept)} channel(s), reordered #{first}-{last}.")
+    rows_out = kept + [c.row for c in chans]
+    if block:
+        rows_out.sort(key=lambda r: int(r["Location"]))
+    write_csv(out, header, rows_out, newline)
+    warn(f"\nWrote {out}: kept {len(kept)} channel(s), {placed}.")
     if zones:
         zones_path = out.with_name(f"{out.stem}-zones.txt")
-        zones_path.write_text(format_zones(zones), encoding="utf-8")
-        warn(f"Wrote {zones_path} ({len(zones)} zones). Paste them into CHIRP's zone settings; "
-             "zones are not part of the CSV.")
+        zones_path.write_text(format_zones(zones, block), encoding="utf-8")
+        if block:
+            warn(f"Wrote {zones_path} ({len(zones)} banks). Channel numbers pick the bank; "
+                 "name the banks to match in CHIRP.")
+        else:
+            warn(f"Wrote {zones_path} ({len(zones)} zones). Paste them into CHIRP's zone "
+                 "settings; zones are not part of the CSV.")
     return out
 
 
