@@ -319,6 +319,10 @@ python3 -m venv .venv
 
 Tests use a small fake town list and never touch the network.
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for what changed in each release.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
