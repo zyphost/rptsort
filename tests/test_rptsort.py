@@ -126,8 +126,37 @@ def test_dedupe_makes_names_unique(export, config):
 
 def test_dedupe_numbers_exact_collisions():
     chans = [Chan(row={"Name": "X"}, freq=147.0, call="K0ABC", town="Denver") for _ in range(3)]
-    assign_names(chans, "town-freq", 16, True, dedupe=True)
+    assign_names(chans, "town-freq", 16, True, dedupe="freq")
     assert [c.row["Name"] for c in chans] == ["DENVER 147.0", "DENVER 147.0 2", "DENVER 147.0 3"]
+
+
+def test_dedupe_number_numbers_repeats_only(export, config):
+    names = names_by_freq(sort(export, "--name", "town", "--dedupe", "number", config=config))
+    assert (names["147.000000"], names["147.210000"]) == ("DENVER1", "DENVER2")
+    assert (names["147.315000"], names["443.625000"]) == ("BRECKENRIDGE1", "BRECKENRIDGE2")
+    assert names["444.625000"] == "GOLDEN"  # unique: no number
+    assert names["146.520000"] == "SIMPLEX"  # no town: left alone
+
+
+def test_dedupe_number_fits_name_len(export, config):
+    rows = read(sort(export, "--name", "town", "--dedupe", "number", "--name-len", "8",
+                     config=config))[3:]
+    names = {r["Frequency"]: r["Name"] for r in rows}
+    assert (names["147.315000"], names["443.625000"]) == ("BRECKEN1", "BRECKEN2")
+    assert all(len(n) <= 8 for n in names.values())
+
+
+def test_no_dedupe_flag(export, config):
+    names = names_by_freq(sort(export, "--name", "town", "--no-dedupe", config=config))
+    assert names["147.000000"] == names["147.210000"] == "DENVER"
+
+
+def test_dedupe_setting_values():
+    def dedupe(value):
+        return resolve_settings({"defaults": {"dedupe": value}}, None, {})["dedupe"]
+    assert (dedupe(True), dedupe(False), dedupe("number")) == ("freq", "off", "number")
+    with pytest.raises(RptsortError):
+        dedupe("letters")
 
 
 def test_freq_label():

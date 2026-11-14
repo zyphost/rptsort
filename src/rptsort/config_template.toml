@@ -21,7 +21,10 @@
 #                 | "town" | "town-band" | "town-freq"
 #   name_len      longest channel name your radio accepts
 #   upper         true = uppercase generated names
-#   dedupe        true = channels that would share a name get a frequency name
+#   dedupe        make repeated names unique (unique names stay as they are):
+#                   "number" = DENVER1, DENVER2, ...
+#                   true     = frequency names, DENVER 145.34 (same as "freq")
+#                   false    = leave them alone
 #   group_calls   true = keep repeaters with the same callsign together
 #   skip_beyond   scan-skip channels farther than this (0 = leave Skip alone)
 #   max_distance  remove channels farther than this (0 = no limit)
@@ -62,7 +65,7 @@ upper = true
 
 [presets.mobile]
 name = "town"
-dedupe = true
+dedupe = "number"
 skip_beyond = $mobile_skip
 zones = "local+state"
 keep_zone = "Simplex"
@@ -88,7 +91,7 @@ group_calls = true
 [presets.trip]
 center = "Grand Junction, CO"
 name = "town"
-dedupe = true
+dedupe = "number"
 skip_beyond = $trip_skip
 
 # Pin exact coordinates for a town (overrides the Census lookup):

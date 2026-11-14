@@ -10,7 +10,7 @@ from pathlib import Path
 from string import Template
 
 from . import RptsortError
-from .channels import BAND_NAMES, NAME_FORMATS, SORTS
+from .channels import BAND_NAMES, DEDUPE_MODES, NAME_FORMATS, SORTS
 from .zones import DEFAULT_LOCAL_KM, ZONE_MODES
 
 MILE_KM = 1.609344
@@ -24,7 +24,7 @@ DEFAULTS = {
     "name": "keep",
     "name_len": 16,
     "upper": True,
-    "dedupe": False,
+    "dedupe": "off",
     "group_calls": False,
     "skip_beyond": 0,
     "max_distance": 0,
@@ -42,7 +42,7 @@ DEFAULTS = {
 _NUMBER = (int, float)
 TYPES = {
     "keep": int, "sort": str, "rings": list, "center": str, "units": str,
-    "name": str, "name_len": int, "upper": bool, "dedupe": bool,
+    "name": str, "name_len": int, "upper": bool, "dedupe": (bool, str),
     "group_calls": bool, "skip_beyond": _NUMBER, "max_distance": _NUMBER,
     "bands": list, "open_only": bool, "limit": int,
     "zones": str, "zone_local": _NUMBER, "zone_max": int, "keep_zone": str,
@@ -91,7 +91,8 @@ def _check_type(key: str, value, where: str) -> None:
     expected = TYPES[key]
     if value is None and key == "center":
         return
-    bad_bool = isinstance(value, bool) and expected is not bool
+    allowed = expected if isinstance(expected, tuple) else (expected,)
+    bad_bool = isinstance(value, bool) and bool not in allowed
     if bad_bool or not isinstance(value, expected):
         raise RptsortError(f"{where}: {key} has the wrong type ({value!r})")
 
@@ -126,6 +127,10 @@ def resolve_settings(cfg: dict, preset: str | None, overrides: dict) -> dict:
         raise RptsortError(f"name must be one of: {', '.join(NAME_FORMATS)}")
     if settings["units"] not in ("km", "mi"):
         raise RptsortError('units must be "km" or "mi"')
+    if isinstance(settings["dedupe"], bool):
+        settings["dedupe"] = "freq" if settings["dedupe"] else "off"
+    if settings["dedupe"] not in DEDUPE_MODES:
+        raise RptsortError(f"dedupe must be true, false, or one of: {', '.join(DEDUPE_MODES)}")
     if settings["zones"] not in ZONE_MODES:
         raise RptsortError(f"zones must be one of: {', '.join(ZONE_MODES)}")
     for key in ("keep", "name_len", "limit", "skip_beyond", "max_distance", "zone_local",
