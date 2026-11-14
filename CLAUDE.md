@@ -61,4 +61,4 @@ The owner's personal settings, including exact home coordinates, live outside th
 
 - **Protection on `main`:** Rulesets block force-push and deletion for everyone. A second ruleset ("main: CI must pass") requires the 6 CI jobs by name, e.g. `test (ubuntu-latest, 3.11)`, and the repo admin can bypass it.
   - **If the CI job matrix or names change,** update that ruleset with `gh api repos/zyphost/rptsort/rulesets`. Otherwise pull requests wait forever on checks that never run.
-- **Releases:** The version lives only in `src/rptsort/__init__.py`, which hatch reads dynamically. To release, bump the version, commit, run `git tag -a vX.Y.Z`, push the tag, then run `gh release create vX.Y.Z --verify-tag`.
+- **Releases:** The version lives only in `src/rptsort/__init__.py`, which hatch reads dynamically. To release, bump the version, add a dated section to `CHANGELOG.md` (Keep a Changelog format, with a compare link at the bottom), commit, run `git tag -a vX.Y.Z`, push the tag, then run `gh release create vX.Y.Z --verify-tag`.
