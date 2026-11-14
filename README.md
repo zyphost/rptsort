@@ -165,9 +165,9 @@ makes repeated names unique. Names that were already unique stay as they are.
 | `"number"` | `DENVER1`, `DENVER2`, `DENVER3`, numbered in channel order |
 | `true` or `"freq"` | frequency-style names: `DENVER 145.34`, `DENVER 146.94` |
 
-Numbered names are shortened to leave room for the number, so `name_len = 12`
-turns `BRECKENRIDGE` into `BRECKENRIDG1`. On the command line, use `--dedupe number`, `--dedupe`
-(frequency style) or `--no-dedupe`.
+Numbered names are shortened to leave room for the number, so with
+`name_len = 12`, `BRECKENRIDGE` becomes `BRECKENRIDG1`. On the command line,
+use `--dedupe number`, `--dedupe` (frequency style) or `--no-dedupe`.
 
 Callsigns are read from the channel name, so rename from a fresh RepeaterBook
 import rather than from a file you already renamed to town-only names.
