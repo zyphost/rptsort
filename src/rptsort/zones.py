@@ -15,6 +15,7 @@ DEFAULT_LOCAL_KM = 80.0
 class Zone:
     name: str
     channels: list[int] = field(default_factory=list)
+    bank: int = 0  # fixed-bank radios: the bank this zone fills (0 = not placed)
 
 
 def _ring_labels(rings: list[float], unit: str) -> list[str]:
@@ -75,8 +76,38 @@ def build_zones(chans: list[Chan], mode: str, *, local_km: float, rings: list[fl
     return zones
 
 
-def format_zones(zones: list[Zone]) -> str:
-    """Text to paste into CHIRP's zone settings, one zone at a time."""
+def place_in_banks(zones: list[Zone], block: int, first_bank: int = 1) -> dict[int, int]:
+    """Fixed-bank radios: give each zone its own bank of `block` channels.
+
+    Bank n holds channels (n-1)*block+1 .. n*block. Zones fill banks in order,
+    starting at first_bank, each from the start of its bank. Updates the zones
+    and returns {old location: new location}. Zones must fit in one bank
+    (build them with zone_max=block).
+    """
+    moves: dict[int, int] = {}
+    for n, z in enumerate(zones):
+        z.bank = first_bank + n
+        start = (z.bank - 1) * block + 1
+        new = list(range(start, start + len(z.channels)))
+        moves.update(zip(z.channels, new))
+        z.channels = new
+    return moves
+
+
+def format_zones(zones: list[Zone], block: int = 0) -> str:
+    """Text for CHIRP: zone lists to paste in, or (fixed banks) what each bank holds."""
+    if block:
+        lines = [
+            f"Banks: this radio has fixed banks of {block} channels; a channel's number "
+            "picks its bank.",
+            "Name the banks to match (WebCHIRP: Radio Settings > Bank names).",
+            "",
+        ]
+        for z in zones:
+            k, lo, hi = len(z.channels), z.channels[0], z.channels[-1]
+            span = f"{lo}" if lo == hi else f"{lo}-{hi}"
+            lines.append(f"Bank {z.bank}: {z.name}  ({k} channel{'' if k == 1 else 's'}: {span})")
+        return "\n".join(lines) + "\n"
     lines = [
         "Zones: paste each list into CHIRP (WebCHIRP: Radio Settings > Zones).",
         f"Zone order: {', '.join(str(n) for n in range(1, len(zones) + 1))}",

@@ -15,6 +15,8 @@ returned. Flipping through 140 channels to find the one across town gets old fas
 - **filters** by distance, band, or open/closed status, and caps the channel count
 - **merges** several exports (home + a trip) and drops the duplicates
 - **plans zones** for radios (like most DMR radios) that only show the channels in the current zone
+- **lines up fixed banks** on radios where a channel's number picks its bank
+- **sets power** on every channel, so imports don't land on the wrong power level
 
 Then you import the new CSV back into CHIRP and upload it to the radio.
 
@@ -33,7 +35,7 @@ That installs the latest code on `main`. To install a specific
 [release](https://github.com/zyphost/rptsort/releases) instead, add its tag:
 
 ```sh
-pipx install git+https://github.com/zyphost/rptsort@v0.1.0
+pipx install git+https://github.com/zyphost/rptsort@v0.3.0
 ```
 
 Or from a clone, without installing anything:
@@ -168,6 +170,20 @@ import rather than from a file you already renamed to town-only names.
 | `limit` | `--limit` | Keep at most this many reordered channels, after sorting. |
 | `units` | `--units mi` | Use miles for the distances above, rings, and the table. |
 
+## Power
+
+CHIRP's CSV stores power in watts, and on import CHIRP picks the radio's level
+closest to that number. A `5.0W` channel lands on a radio with 10W/3W/1W levels
+as 3W. Set `power` to the wattage of the level you want, and every channel in
+the output gets it, kept channels included:
+
+```toml
+power = "10W"     # or: power = 10
+```
+
+`rptsort my-radio.csv --power 10W` does the same for one run. Leave it unset to
+keep each channel's power as it is.
+
 ## Zones
 
 Many radios, most DMR radios included, only let you flip through the channels in
@@ -192,6 +208,7 @@ CSV's order. Repeaters with no known location go in `Other`.
 | `zone_local` | `--zone-local` | Cutoff for the `Local` zone. Defaults to `skip_beyond`, else 80 km. |
 | `zone_max` | `--zone-max` | Split zones bigger than this into `Name 1`, `Name 2`, ... (default 60). Check your radio's limit. |
 | `keep_zone` | `--keep-zone` | Add a zone with the kept top channels, e.g. `"Simplex"`. |
+| `zone_block` | `--zone-block` | The radio has fixed banks of this many channels: start each zone in its own bank. See below. |
 
 ```text
 Zone order: 1, 2, 3, 4
@@ -206,6 +223,35 @@ Zone 2: Colorado  (31 channels)
 Re-running `rptsort` renumbers channels, so paste the new zone lists in again
 each time you load a new CSV. Save the radio image (`.img`) afterwards: it holds
 the zones and settings, the CSV only holds channels.
+
+### Fixed banks
+
+Some radios have fixed banks instead of zones you fill: 10 banks of 100
+channels, say, where bank 1 is channels 1-100 and bank 2 is 101-200. You can
+name the banks but not choose what goes in them, because a channel's number
+decides its bank. Set `zone_block` to the bank size and `rptsort` starts each
+zone at the top of its own bank:
+
+```toml
+zones = "local+state"
+zone_block = 100
+keep_zone = "Simplex"
+```
+
+```text
+Bank 1: Local  (24 channels: 1-24)
+Bank 2: Colorado  (31 channels: 101-131)
+Bank 3: Wyoming  (6 channels: 201-206)
+Bank 4: Simplex  (12 channels: 301-312)
+```
+
+With `keep_zone`, the kept top channels move into a bank of their own, after the
+others. Without it, they stay where they are and the zones start in the next
+empty bank. `zone_max` is ignored: a zone that doesn't fit in one bank is split
+across banks (`Colorado 1`, `Colorado 2`). Name the banks to match in CHIRP.
+
+CHIRP's import adds channels but doesn't clear old ones, so delete the radio's
+existing channels in CHIRP before importing a re-banked CSV.
 
 ## Merging exports
 

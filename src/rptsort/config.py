@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import tomllib
 from importlib import resources
 from pathlib import Path
@@ -34,6 +35,8 @@ DEFAULTS = {
     "zone_local": 0,
     "zone_max": 60,
     "keep_zone": "",
+    "zone_block": 0,
+    "power": "",
 }
 
 _NUMBER = (int, float)
@@ -43,7 +46,19 @@ TYPES = {
     "group_calls": bool, "skip_beyond": _NUMBER, "max_distance": _NUMBER,
     "bands": list, "open_only": bool, "limit": int,
     "zones": str, "zone_local": _NUMBER, "zone_max": int, "keep_zone": str,
+    "zone_block": int, "power": (str, int, float),
 }
+
+POWER_RE = re.compile(r"^\s*(\d+(?:\.\d+)?)\s*[Ww]?\s*$")
+
+
+def parse_power(value) -> str:
+    """Watts as CHIRP writes them ("10.0W"). "" or 0 means leave Power alone."""
+    m = POWER_RE.match(str(value))
+    if value != "" and not m:
+        raise RptsortError(f'power must be watts, e.g. "10W" (got {value!r})')
+    watts = float(m.group(1)) if m else 0.0
+    return f"{watts:.1f}W" if watts else ""
 
 
 def user_config_path() -> Path:
@@ -113,13 +128,17 @@ def resolve_settings(cfg: dict, preset: str | None, overrides: dict) -> dict:
         raise RptsortError('units must be "km" or "mi"')
     if settings["zones"] not in ZONE_MODES:
         raise RptsortError(f"zones must be one of: {', '.join(ZONE_MODES)}")
-    for key in ("keep", "name_len", "limit", "skip_beyond", "max_distance", "zone_local"):
+    for key in ("keep", "name_len", "limit", "skip_beyond", "max_distance", "zone_local",
+                "zone_block"):
         if settings[key] < 0:
             raise RptsortError(f"{key} can't be negative")
     if settings["name_len"] < 1:
         raise RptsortError("name_len must be at least 1")
     if settings["zone_max"] < 1:
         raise RptsortError("zone_max must be at least 1")
+    if settings["zone_block"] and settings["zones"] == "none":
+        raise RptsortError('zone_block needs zones, e.g. zones = "local+state"')
+    settings["power"] = parse_power(settings["power"])
     try:
         settings["rings"] = sorted(float(x) for x in settings["rings"])
     except (TypeError, ValueError) as exc:
