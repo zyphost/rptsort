@@ -61,7 +61,7 @@ upper = true
 # Run one with:  rptsort mobile my-export.csv
 
 [presets.mobile]
-name = "town-band"
+name = "town"
 dedupe = true
 skip_beyond = $mobile_skip
 zones = "local+state"
@@ -76,7 +76,7 @@ group_calls = true
 # A radio with 10 fixed banks of 100 channels (some Baofeng/BTECH handhelds).
 # Bank 1 = Local, then one bank per state, then the kept channels.
 # [presets.handheld]
-# name = "town-band"
+# name = "town"
 # name_len = 12
 # skip_beyond = $mobile_skip
 # zones = "local+state"
@@ -87,7 +87,7 @@ group_calls = true
 # For a trip, pull a fresh RepeaterBook list around the destination first.
 [presets.trip]
 center = "Grand Junction, CO"
-name = "town-band"
+name = "town"
 dedupe = true
 skip_beyond = $trip_skip
 

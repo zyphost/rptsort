@@ -96,7 +96,7 @@ keep = 25          # channels 1-25 are left exactly as they are
 name_len = 16      # longest name the radio accepts
 
 [presets.mobile]   # in the car: nearest first, short names, skip far ones
-name = "town-band"
+name = "town"
 dedupe = true
 skip_beyond = 80
 
@@ -108,7 +108,7 @@ group_calls = true
 
 [presets.trip]     # sort around somewhere else
 center = "Grand Junction, CO"
-name = "town-band"
+name = "town"
 skip_beyond = 60
 ```
 
@@ -147,6 +147,9 @@ usually means one club owns them, which often but not always means they're linke
 | `town` | `IDAHO SPRINGS` |
 | `town-band` | `IDAHO SPRINGS 2M` |
 | `town-freq` | `IDAHO SPG 145.17` |
+
+`town` leaves the most room for the town. Most radios can show the frequency
+next to the name, which already tells you the band, so the example presets use it.
 
 Names are fitted to `name_len`. Common words are abbreviated first (Springs to
 SPG, Mountain to MTN, City to CTY), then the town is shortened if it still
