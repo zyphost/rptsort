@@ -10,7 +10,7 @@ from pathlib import Path
 
 from . import RptsortError, __version__
 from .channels import (
-    NAME_FORMATS, SORTS, Chan, apply_filters, assign_names, drop_duplicates,
+    DEDUPE_MODES, NAME_FORMATS, SORTS, Chan, apply_filters, assign_names, drop_duplicates,
     group_by_call, is_repeater_row, make_chan, offset_text, sort_chans, tone_text,
 )
 from .config import (
@@ -91,8 +91,11 @@ def build_sort_parser() -> argparse.ArgumentParser:
     g.add_argument("--name-len", type=int, help="max name length for the radio")
     g.add_argument("--upper", action=argparse.BooleanOptionalAction, default=None,
                    help="uppercase generated names")
-    g.add_argument("--dedupe", action=argparse.BooleanOptionalAction, default=None,
-                   help="give channels that would share a name a frequency-style name")
+    g.add_argument("--dedupe", nargs="?", const="freq", choices=DEDUPE_MODES, metavar="MODE",
+                   help="make repeated names unique: freq (the default MODE) switches them to "
+                        "frequency names, number adds 1, 2, 3 (DENVER1, DENVER2)")
+    g.add_argument("--no-dedupe", dest="dedupe", action="store_const", const="off",
+                   help="leave repeated names as they are")
 
     g = p.add_argument_group("filters")
     g.add_argument("--skip-beyond", type=float, metavar="DIST",
@@ -281,6 +284,9 @@ def run_sort(argv: list[str]) -> Path | None:
         warn(f"\n{len(names['unnamed'])} channel(s) kept their old name (no callsign or town):")
         for c in names["unnamed"]:
             warn(f"  #{c.row['Location']} {c.row.get('Name', '')}")
+    if names["numbered"]:
+        warn(f"\n{len(names['numbered'])} channel(s) with a shared name got a number "
+             "(NAME1, NAME2, ...).")
     if names["deduped"]:
         warn(f"\n{len(names['deduped'])} name(s) switched to frequency style to stay unique.")
     if names["cut"]:

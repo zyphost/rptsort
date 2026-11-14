@@ -4,6 +4,22 @@ Notable changes to `rptsort`. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- `dedupe = "number"` and `--dedupe number` number channels that share a name, in
+  channel order: `DENVER1`, `DENVER2`, `DENVER3`. Names are shortened to leave room
+  for the number. Names that were already unique stay as they are. This is for radios
+  that show only the name or only the frequency, not both.
+
+### Changed
+
+- `dedupe` takes `false`, `"number"`, or `true`/`"freq"` (frequency-style names, as
+  before). `--dedupe` takes an optional mode and defaults to `freq`, and
+  `--no-dedupe` still turns it off.
+- The example presets from `rptsort init` and in the README use `dedupe = "number"`.
+
 ## [0.3.0] - 2026-11-14
 
 ### Added
@@ -65,6 +81,7 @@ First release.
 - Town coordinates from the US Census Gazetteer, downloaded once. Falls back to the
   county center, and `[coords]` overrides both.
 
+[Unreleased]: https://github.com/zyphost/rptsort/compare/v0.3.0...HEAD
 [0.3.0]: https://github.com/zyphost/rptsort/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/zyphost/rptsort/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/zyphost/rptsort/releases/tag/v0.1.0

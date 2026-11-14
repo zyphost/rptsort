@@ -97,7 +97,7 @@ name_len = 16      # longest name the radio accepts
 
 [presets.mobile]   # in the car: nearest first, short names, skip far ones
 name = "town"
-dedupe = true
+dedupe = "number"
 skip_beyond = 80
 
 [presets.base]     # at home: distance rings, grouped by callsign
@@ -148,16 +148,26 @@ usually means one club owns them, which often but not always means they're linke
 | `town-band` | `IDAHO SPRINGS 2M` |
 | `town-freq` | `IDAHO SPG 145.17` |
 
-`town` leaves the most room for the town. Most radios can show the frequency
-next to the name, which already tells you the band, so the example presets use it.
+`town` leaves the most room for the town, and the frequency already tells you
+the band, so the example presets use it with `dedupe = "number"` (below).
 
 Names are fitted to `name_len`. Common words are abbreviated first (Springs to
 SPG, Mountain to MTN, City to CTY), then the town is shortened if it still
 doesn't fit. Set `upper = false` to keep mixed case.
 
-With `dedupe = true`, channels that would end up with the same name (three
-`DENVER 2M`, say) get frequency-style names instead (`DENVER 145.34`,
-`DENVER 146.94`, `DENVER 147.33`). Names that were already unique stay as they are.
+Town names repeat: a city with four repeaters gives four `DENVER` channels.
+Many radios show only the name or only the frequency, not both, so `dedupe`
+makes repeated names unique. Names that were already unique stay as they are.
+
+| `dedupe` | Repeated names become |
+|---|---|
+| `false` | left as they are (default) |
+| `"number"` | `DENVER1`, `DENVER2`, `DENVER3`, numbered in channel order |
+| `true` or `"freq"` | frequency-style names: `DENVER 145.34`, `DENVER 146.94` |
+
+Numbered names are shortened to leave room for the number, so with
+`name_len = 12`, `BRECKENRIDGE` becomes `BRECKENRIDG1`. On the command line,
+use `--dedupe number`, `--dedupe` (frequency style) or `--no-dedupe`.
 
 Callsigns are read from the channel name, so rename from a fresh RepeaterBook
 import rather than from a file you already renamed to town-only names.

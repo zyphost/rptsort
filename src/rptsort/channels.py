@@ -210,10 +210,17 @@ def dedupe_pieces(pieces: tuple[str, ...]) -> tuple[str, ...]:
     return p if "freq" in p else p + ("freq",)
 
 
+DEDUPE_MODES = ("off", "freq", "number")
+
+
 def assign_names(chans: list[Chan], fmt: str, max_len: int, upper: bool,
-                 dedupe: bool) -> dict[str, list[Chan]]:
-    """Rename channels in place. Returns lists of channels for reporting."""
-    report: dict[str, list[Chan]] = {"cut": [], "unnamed": [], "deduped": []}
+                 dedupe: str) -> dict[str, list[Chan]]:
+    """Rename channels in place. Returns lists of channels for reporting.
+
+    dedupe: "off" leaves repeated names alone; "freq" gives them frequency-style
+    names; "number" adds 1, 2, 3 to every channel sharing a name (DENVER1, DENVER2).
+    """
+    report: dict[str, list[Chan]] = {"cut": [], "unnamed": [], "deduped": [], "numbered": []}
     if fmt == "keep":
         return report
     pieces = NAME_FORMATS[fmt]
@@ -225,7 +232,22 @@ def assign_names(chans: list[Chan], fmt: str, max_len: int, upper: bool,
             continue
         c.row["Name"], cut[id(c)] = res
 
-    if dedupe:
+    if dedupe == "number":
+        groups: dict[str, list[Chan]] = {}
+        for c in chans:
+            if id(c) in cut:
+                groups.setdefault(c.row["Name"], []).append(c)
+        for group in groups.values():
+            if len(group) < 2:
+                continue
+            width = len(str(len(group)))  # shorten the name to make room for the number
+            for i, c in enumerate(group, 1):
+                base, was_cut = make_name(c, pieces, max_len - width, upper)
+                c.row["Name"] = f"{base}{i}"
+                cut[id(c)] = cut[id(c)] or was_cut
+                report["numbered"].append(c)
+
+    if dedupe == "freq":
         counts = Counter(c.row["Name"] for c in chans)
         alt = dedupe_pieces(pieces)
         for c in chans:
